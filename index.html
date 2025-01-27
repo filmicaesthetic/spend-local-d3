@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Local Economy Simulation</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>Local Economy Simulation</h1>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <button onclick="addToLocalBusiness(1)">Add £1 to Local Business</button>
+  <button onclick="addToBigBusiness(1)">Add £1 to Big Business</button>
+  <div class = "canvas">
+    <svg id="visualization" width="800" height="600"></svg>
+  </div>
+
+  <div class="output" id="output">
+    <p>Local Consumer Total: £<span id="localConsumerTotal">0</span></p>
+    <p>Local Business Total: £<span id="localBusinessTotal">0</span></p>
+    <p>Other Business Total: £<span id="otherBusinessTotal">0</span></p>
+    <p>External Total: £<span id="externalTotal">0</span></p>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
