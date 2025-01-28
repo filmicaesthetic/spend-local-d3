@@ -39,7 +39,8 @@ function addToLocalBusiness(x) {
     local_business_amount += x
     local_business_total += x
     document.getElementById("localBusinessTotal").innerText = local_business_total.toFixed(2);  
-    addBalls(localBusinessBalls, "localBusiness", x*100);
+    addBalls(localBusinessBalls, "localBusiness", x*50);
+    updateEntitySizes()
 }
 
 // spend with local business function
@@ -47,7 +48,8 @@ function addToBigBusiness(x) {
     other_business_amount += x
     other_business_total += x
     document.getElementById("otherBusinessTotal").innerText = other_business_total.toFixed(2);
-    addBalls(bigBusinessBalls, "bigBusiness", x*100);
+    addBalls(bigBusinessBalls, "bigBusiness", x*50);
+    updateEntitySizes()
 }
 
 // local consumer iteration
@@ -105,28 +107,68 @@ const externalY = height
 
 // Define boxes for entities
 const entities = [
-  { id: "localConsumer", x: localConsumerX, y: localConsumerY, label: "Local Consumer", color: "#4287f5", width: 150 },
-  { id: "localBusiness", x: localBusinessX, y: localBusinessY, label: "Local Business", color: "#f2c746", width: 150 },
-  { id: "bigBusiness", x: bigBusinessX, y: bigBusinessY, label: "Big Business", color: "#ed46f2", width: 150 },
+  { id: "localConsumer", x: localConsumerX, y: localConsumerY, label: "Local Consumer", color: "#777777", width: 150 },
+  { id: "localBusiness", x: localBusinessX, y: localBusinessY, label: "Local Business", color: "#777777", width: 150 },
+  { id: "bigBusiness", x: bigBusinessX, y: bigBusinessY, label: "Big Business", color: "#777777", width: 150 },
   { id: "external", x: externalX, y: externalY, label: "External", color: "#61ed45", width: "100%" },
 ];
 
 entities.forEach(({ id, x, y, color, width, label }) => {
-  svg.append("rect")
-    .attr("id", id)
-    .attr("class", "entity-box")
-    .attr("x", x)
-    .attr("y", y)
-    .attr("fill", color)
-    .attr("width", width)
-    .attr("height", boxHeight);
-
-  svg.append("text")
-    .attr("class", "label")
-    .attr("x", x + boxWidth / 2)
-    .attr("y", y + boxHeight + 20)
-    .text(label);
-});
+    svg.append("circle")
+      .attr("id", id)
+      .attr("class", "entity-box")
+      .attr("r", 20)
+      .attr("cx", x)
+      .attr("cy", y)
+      .attr("fill", color);
+      // .attr("width", width)
+      // .attr("height", boxHeight);
+  
+      // circles.enter()
+      // .append("circle")
+      // .attr("class", "ball")
+      // .attr("r", 10)
+      // .attr("fill", "#000000")
+      // .attr("cx", d => d.x)
+      // .attr("cy", d => d.y);
+  
+    svg.append("text")
+      .attr("class", "label")
+      .attr("x", x + boxWidth / 2)
+      .attr("y", y + boxHeight + 20)
+      .text(label);
+  });
+  
+  // Function to update circle sizes dynamically
+  function updateEntitySizes() {
+    // Select all entity circles and update their radii based on ball counts
+    svg.selectAll(".entity-box")
+      .each(function () {
+        const entity = d3.select(this);
+        const entityId = entity.attr("id"); // Get the entity's ID
+        let size;
+  
+        // Determine the size based on the associated ball array
+        switch (entityId) {
+          case "localConsumer":
+            size = Math.sqrt(localConsumerBalls.length);
+            break;
+          case "localBusiness":
+            size = Math.sqrt(localBusinessBalls.length);
+            break;
+          case "bigBusiness":
+            size = Math.sqrt(bigBusinessBalls.length);
+            break;
+          default:
+            size = 0;
+        }
+  
+        // Dynamically update the radius
+        entity.transition()
+          .duration(500) // Smooth transition
+          .attr("r", Math.max(20, size * 3)); // Scale size, minimum radius 50
+      });
+  }
 
 let isAddingBalls = false; // Prevents reallocation during ball addition
 
@@ -134,15 +176,27 @@ function addBalls(ballArray, entityId, count) {
     isAddingBalls = true;
 
     let entityBox = d3.select(`#${entityId}`);
-    let boxX = +entityBox.attr("x");
-    let boxY = +entityBox.attr("y");
+    let boxX = +entityBox.attr("cx");
+    let boxY = +entityBox.attr("cy");
+
+    // Calculate the current radius of the circle
+  const radius = Math.sqrt(ballArray.length) * 10; // Scale radius as needed (e.g., multiply by 10)
+
+  // Generate random angle and distance from the center
+  const angle = Math.random() * 2 * Math.PI; // Random angle in radians
+  const distance = Math.random() * radius; // Random distance within the circle's radius
+
+  // Convert polar coordinates (angle, distance) to Cartesian (x, y)
+  const offsetX = distance * Math.cos(angle);
+  const offsetY = distance * Math.sin(angle);
+
   
     // Generate new balls
     const newBalls = [];
     for (let i = 0; i < count; i++) {
       const newBall = {
         id: `ball-${ballIdCounter++}`, // Assign a unique ID
-        x: boxX + Math.random() * boxWidth, // Random x position within the box
+        x: boxX - 25 + (Math.random() * 50), // Random x position within the box
         y: -10, // Start off-screen (above the box)
         readyToMove: false, // Prevent immediate reallocation
       };
@@ -158,12 +212,9 @@ function addBalls(ballArray, entityId, count) {
       .data(newBalls, d => d.id) // Bind only the new balls
       .transition()
       .duration(300) // Duration of the drop animation
-      .attr("cy", d => {
-        // Set final y position
-        d.y = boxY + Math.random() * boxHeight; // Update `d.y` to the box position
-        return d.y; // Return final y for the transition
-      })
-      .delay((d, i) => i * 1.1) // Stagger the animations slightly
+      .attr("cx", d => boxX - offsetX + (parseInt(d.id.split('-')[1], 10) / 50 * 2 * offsetX) )
+      .attr("cy", d => boxY - offsetY + (parseInt(d.id.split('-')[1], 10) / 50 * 2 * offsetY) )
+      .delay((d, i) => i * Math.random()) // Stagger the animations slightly
       .on("end", (_, i, nodes) => {
         // Set readyToMove only after the last animation ends
         if (i === nodes.length - 1) {
@@ -194,7 +245,7 @@ function updateBalls() {
   circles
     .transition()
     .duration(500)
-    .delay((d, i) => i * 1.1)
+    .delay((d, i) => i * Math.random())
     .attr("cx", d => d.x)
     .attr("cy", d => d.y);
 
@@ -209,15 +260,15 @@ function reallocate() {
 
     const processedBalls = new Set(); // Track balls already processed in this cycle
 
-    if (local_business_amount > 0) {
-        localBusinessIteration(local_business_amount);
+    if (localBusinessBalls.length > 0) {
+        localBusinessIteration(localBusinessBalls.length / 100);
 
         // Local Business -> Local Consumer, External
     localBusinessBalls.forEach(ball => {
         // if (!ball.readyToMove) return; // Skip balls that aren't ready
     if (Math.random() < local_business_wage_perc) {
-      ball.x = localConsumerX + Math.random() * boxWidth; // Move to local consumer
-      ball.y = localConsumerY + Math.random() * boxHeight;
+      ball.x = localConsumerX + Math.random() * Math.sqrt(localConsumerBalls.length); // Move to local consumer
+      ball.y = localConsumerY + Math.random() * Math.sqrt(localConsumerBalls.length);
       localConsumerBalls.push(ball);
       localBusinessBalls = localBusinessBalls.filter(ball => !localConsumerBalls.includes(ball)&& !bigBusinessBalls.includes(ball) && !externalBalls.includes(ball));
     } else if (Math.random() < (local_business_local_spend_perc / (1 - local_business_wage_perc))) {
@@ -225,45 +276,47 @@ function reallocate() {
     //   ball.y = localBusinessY + Math.random() * boxHeight;
     //   localBusinessBalls.push(ball);
     } else {
-        ball.x = externalX + Math.random() * width; // Move to external
+        ball.x = width / 2; // Move to external
         ball.y = -100;
         externalBalls.push(ball);
         localBusinessBalls = localBusinessBalls.filter(ball => !localConsumerBalls.includes(ball)&& !bigBusinessBalls.includes(ball) && !externalBalls.includes(ball));
       }
 
       processedBalls.add(ball);
+      // updateEntitySizes()
 
   });
 
       }
-      if (other_business_amount > 0) {
-        otherBusinessIteration(other_business_amount);
+      if (bigBusinessBalls.length > 0) {
+        otherBusinessIteration(bigBusinessBalls.length / 100);
 
         bigBusinessBalls.forEach(ball => {
             if (processedBalls.has(ball)) return;
             // if (!ball.readyToMove) return; // Skip balls that aren't ready
             if (Math.random() < other_business_wage_perc) {
-              ball.x = localConsumerX + Math.random() * boxWidth; // Move to local consumer
-              ball.y = localConsumerY + Math.random() * boxHeight;
+              ball.x = localConsumerX + Math.random() * Math.sqrt(localConsumerBalls.length); // Move to local consumer
+              ball.y = localConsumerY + Math.random() * Math.sqrt(localConsumerBalls.length); //+ Math.random() * boxHeight;
               localConsumerBalls.push(ball);
             } else if (Math.random() < other_business_local_spend_perc) {
-              ball.x = localBusinessX + Math.random() * boxWidth; // Stay in local business
-              ball.y = localBusinessY + Math.random() * boxHeight;
+              ball.x = localBusinessX + Math.random() * Math.sqrt(localBusinessBalls.length);//+ Math.random() * boxWidth; // Stay in local business
+              ball.y = localBusinessY + Math.random() * Math.sqrt(localBusinessBalls.length)//+ Math.random() * boxHeight;
               localBusinessBalls.push(ball);
             } else {
-                ball.x = externalX + Math.random() * width; // Move to external
+                ball.x = width / 2; // Move to external
                 ball.y = -100;
                 externalBalls.push(ball);
               }
 
               processedBalls.add(ball);
+              // updateEntitySizes()
 
               bigBusinessBalls = bigBusinessBalls.filter(ball => !localBusinessBalls.includes(ball) && !localConsumerBalls.includes(ball) && !externalBalls.includes(ball));
           });
       }
 
-      if (local_consumer_amount > 0) {
-        localConsumerIteration(local_consumer_amount);
+      if (localConsumerBalls.length > 0) {
+        localConsumerIteration(localConsumerBalls.length / 100);
 
            // Local Business -> Local Consumer, External
         localConsumerBalls.forEach(ball => {
@@ -271,20 +324,21 @@ function reallocate() {
             const randNum = Math.random()
             // if (!ball.readyToMove) return; // Skip balls that aren't ready
         if (randNum < consumer_utilities_perc) {
-          ball.x = externalX + Math.random() * width; // Move to external
+          ball.x = width / 2; // Move to external
           ball.y = externalY + 100;
           externalBalls.push(ball);
         } else if (randNum < consumer_utilities_perc + (consumer_other_perc * (1-consumer_utilities_perc))) {
-            ball.x = bigBusinessX + Math.random() * boxWidth; // spend in local business
-            ball.y = bigBusinessY + Math.random() * boxHeight;
+            ball.x = bigBusinessX //+ Math.random() * boxWidth; // spend in local business
+            ball.y = bigBusinessY //+ Math.random() * boxHeight;
           bigBusinessBalls.push(ball);
         } else {
-            ball.x = localBusinessX + Math.random() * boxWidth; // spend in other business
-            ball.y = localBusinessY + Math.random() * boxHeight;
+            ball.x = localBusinessX //+ Math.random() * boxWidth; // spend in other business
+            ball.y = localBusinessY //+ Math.random() * boxHeight;
             localBusinessBalls .push(ball);
           }
 
           processedBalls.add(ball);
+          // updateEntitySizes()
         
         localConsumerBalls = localConsumerBalls.filter(
             ball => !localBusinessBalls.includes(ball) && !bigBusinessBalls.includes(ball) && !externalBalls.includes(ball)
@@ -308,4 +362,7 @@ function reallocate() {
 }
 
 // Run reallocation every second
-setInterval(reallocate, 1200);
+setInterval(() => {
+    reallocate(); // Existing logic
+    updateEntitySizes();
+  }, 1200);
